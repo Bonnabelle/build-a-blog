@@ -25,18 +25,46 @@ template_dir = os.path.join(os.path.dirname(__file__), "templates")
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
 
 class Handler(webapp2.RequestHandler):
-    def render_page(self, title="",entry="",error=""):
+    def render_blog(self, title="",entry="",error=""):
         posts = db.GqlQuery("SELECT * FROM Blog_Post "
                          " ORDER BY created DESC"
                          " LIMIT 5")
 
-        template = jinja_env.get_template("html_stuffs.html")
+        template = jinja_env.get_template("blog_html.html")
         response = template.render(title=title,entry=entry,error=error,posts=posts)
+        self.response.write(response)
+
+    def render_post(self, title="",entry="",error=""):
+        template = jinja_env.get_template("newpost_html.html")
+        response = template.render(title=title,entry=entry,error=error)
         self.response.write(response)
 
 class Blog(Handler):
     def get(self):
-        self.render_page()
+        self.render_blog()
+
+class Blog_Post(db.Model):
+    title = db.StringProperty( required = True)
+    entry = db.TextProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+
+class ViewPostHandler(webapp2.RequestHandler):
+    def get(self, id):
+        num = 0
+        id_list = []
+        for entry in self.request.get("entry"):
+            for i in range(1,10):
+                num += 1
+                id = num
+                id_list.append(id)
+
+    #def post(self):
+
+
+
+class NewPost(Handler):
+    def get(self):
+        self.render_post()
 
     def post(self):
         title = self.request.get("title")
@@ -48,14 +76,13 @@ class Blog(Handler):
             self.redirect('/blog')
         else:
             error = "Uh oh! Looks like a title or post wasn't submitted. Try again!"
-            self.render_page(title,entry,error)
+            self.render_post(title,entry,error)
 
-class Blog_Post(db.Model):
-    title = db.StringProperty( required = True)
-    entry = db.TextProperty(required = True)
-    created = db.DateTimeProperty(auto_now_add = True)
+
 
 
 app = webapp2.WSGIApplication([
-    ('/blog',Blog)
+    ('/blog',Blog),
+    webapp2.Route('/blog/<id:\d+>', ViewPostHandler),
+    ('/newpost',NewPost)
 ], debug=True)
