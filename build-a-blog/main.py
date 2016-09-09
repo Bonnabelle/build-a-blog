@@ -44,22 +44,9 @@ class Blog(Handler):
         self.render_blog()
 
 class Blog_Post(db.Model):
-    title = db.StringProperty( required = True)
+    title = db.StringProperty(required = True)
     entry = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
-
-class ViewPostHandler(webapp2.RequestHandler):
-    def get(self, id):
-        num = 0
-        id_list = []
-        for entry in self.request.get("entry"):
-            for i in range(1,10):
-                num += 1
-                id = num
-                id_list.append(id)
-
-    #def post(self):
-
 
 
 class NewPost(Handler):
@@ -78,7 +65,19 @@ class NewPost(Handler):
             error = "Uh oh! Looks like a title or post wasn't submitted. Try again!"
             self.render_post(title,entry,error)
 
+class ViewPostHandler(webapp2.RequestHandler):
+    def get(self,id):
+        blogPost = Blog_Post.get_by_id(int(id))
+        if not blogPost:
+            error = "That post id does not exist. Please try again!"
+            self.response.out.write(error)
+            return
 
+        key = blogPost.key().id()
+        posts = db.GqlQuery("SELECT * FROM Blog_Post")
+        template = jinja_env.get_template("single_post.html")
+        response = template.render(post=blogPost)
+        self.response.write(response)
 
 
 app = webapp2.WSGIApplication([
